@@ -4,11 +4,12 @@
   "description": "Node module that transforms HTML/XML comments into processing instructions",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "coveralls": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/pmentz/comment-processing.git"
+    "type": "git",
+    "url": "https://github.com/pmentz/comment-processing.git"
   },
   "keywords": [
     "html",
@@ -24,7 +25,10 @@
   "license": "MIT",
   "devDependencies": {
     "chai": "^3.2.0",
+    "coveralls": "^2.11.3",
+    "istanbul": "^0.3.17",
     "mocha": "^2.2.5",
+    "mocha-lcov-reporter": "0.0.2",
     "rimraf": "^2.4.2"
   }
 }

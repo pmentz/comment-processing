@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/pmentz/comment-processing.svg)](https://travis-ci.org/pmentz/comment-processing) [![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies)
+[![Build Status](https://travis-ci.org/pmentz/comment-processing.svg)](https://travis-ci.org/pmentz/comment-processing) [![Coverage Status](https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master)](https://coveralls.io/github/pmentz/comment-processing?branch=master)
+[![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies)
 
 # comment-processing
 Node module that transforms HTML/XML comments into processing instructions
