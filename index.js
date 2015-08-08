@@ -3,15 +3,6 @@
 var stream = require('stream');
 var util = require('util');
 
-RegExp.prototype.match = function(str, matchFn, altFn) {
-  var match = this.exec(str);
-  if (match) {
-    matchFn(match);
-  } else if (altFn) {
-    altFn();
-  }
-};
-
 var IdentityInstruction = function IdentityInstruction() {};
 IdentityInstruction.prototype.start = function(line, name, arg, index) {
   return line;
@@ -68,9 +59,9 @@ AggregateInstruction.prototype.process = function(line) {
 };
 AggregateInstruction.prototype.end = function(line) {
   if (this.callback) {
-    this.callback(this.sourceFiles);
+    this.callback(this.sourceFiles, this.targetFile);
   }
-  return new Array(this.indent).join(' ') + '<script src="' +  this.targetFile + '"></script>';
+  return new Array(this.indent).join(' ') + '<script src="' + this.targetFile + '"></script>';
 };
 
 var Transform = stream.Transform;

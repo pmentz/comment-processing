@@ -117,15 +117,31 @@ will be converted to
 Before, when creating the aggregation instruction instance, you can define a callback to be called with the list of
 files collected.
 
-    commentProcessing.AggregateInstruction(function(files) {
-      // do something with files, e.g. uglify
+    commentProcessing.AggregateInstruction(function(sourceFiles, targetFile) {
+      // do something with sourceFiles, e.g. uglify
     }
 
-Files will be an array containing the filenames. In this example it will look like
+sourceFiles will be an array containing the filenames. In this example it will look like
 
     ['script/application.module.js',
      'script/application.controllers.js',
      'script/application.directives.js']
+
+You find an example implemtation for uglifying the files below. Keep in mind that it completely dismisses error
+handling.
+
+    var commentProcessings = require('commentProcessings');
+    var fs = require('fs');
+    var mkdir = require('mkdirp-promise');
+    var path = require('path');
+    var uglify = require('uglify-js')
+
+    commentProcessings.AggregateInstruction(function(sourceFiles, targetFile) {
+      var uglified = uglify.minify(sourceFiles);
+      mkdir(path.dirname(targetFile)).then(function() {
+        fs.writeFile(targetFile, uglified.code);
+      })
+    })
 
 ## License
 
