@@ -1,4 +1,5 @@
 test/output/
+coverage/
 
 # Logs
 logs
