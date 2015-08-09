@@ -68,7 +68,7 @@ under a name.
     var commentProcessing = require('comment-processing');
     var fs = require('fs');
 
-    var config = {drop: commentProcessing.DropInstruction()};
+    var config = {instructions: {drop: commentProcessing.DropInstruction()}};
 
     fs.createReadStream(inputFilename)
       .pipe(commentProcessing(config))
@@ -79,11 +79,11 @@ This example will parse for comments with the name drop (drop:start and drop:end
 
 ### commentProcessing.DropInstruction()
 
-Returns an instance of an instruction that deletes the start and end comment, as well as everything in between.
+Returns a factory method of an instruction that deletes the start and end comment, as well as everything in between.
 
 ### commentProcessing.MinInstruction()
 
-Returns an instance of an instruction, that adds a .min to all references Javascript and CSS files in between.
+Returns a factory method of an instruction, that adds a .min to all references Javascript and CSS files in between.
 
     <!-- add-min:start -->
     <script src="components/bootstrap.js"></script>
@@ -100,9 +100,9 @@ tags and they will will stay untouched. Any line being a script src or link href
 
 ### commentProcessing.AggregateInstruction([callback])
 
-Returns an instance of an instruction which collects all script references in between. Therefore an alternate filename
-has to be provided which will be used instead. This can be used to call a 3rd party module like uglify to concat all
-files.
+Returns a factory method of an instruction which collects all script references in between. Therefore an alternate
+filename has to be provided which will be used instead. This can be used to call a 3rd party module like uglify to
+concat all files.
 
     <!-- concat:start script/application.js -->
     <script src="script/application.module.js"></script>
@@ -141,7 +141,7 @@ handling.
       mkdir(path.dirname(targetFile)).then(function() {
         fs.writeFile(targetFile, uglified.code);
       })
-    })
+    });
 
 ## License
 
