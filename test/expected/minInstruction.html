@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Test File</title>
+    <meta name="description" content="Testing processing comments">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- drop:start -->
+    <script src="livereload.js"></script>
+    <!-- drop:end -->
+    <script src="components/foo.min.js"></script>
+    <script type="text/javascript" src="components/bar.min.js"></script>
+    <link rel="stylesheet" href="components/fb.min.css">
+  </head>
+  
+  <body>
+    <!-- aggregate:start script/aggregated.js -->
+    <script src="script/one.js"></script>
+    <script src="script/two.js"></script>
+    <!-- aggregate:end -->
+  </body>
+</html>

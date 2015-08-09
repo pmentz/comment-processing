@@ -1,0 +1,5 @@
+{
+  "preset": "grunt",
+  "disallowTrailingWhitespace": "ignoreEmptyLines",
+  "safeContextKeyword": "self"
+}
