@@ -3,7 +3,11 @@
 var stream = require('stream');
 var util = require('util');
 
-var IdentityInstruction = function IdentityInstruction() {};
+var IdentityInstruction = function IdentityInstruction() {
+  if (!(this instanceof IdentityInstruction)) {
+    return new IdentityInstruction();
+  }
+};
 IdentityInstruction.prototype.start = function(line, name, arg, index) {
   return line;
 };
@@ -14,7 +18,11 @@ IdentityInstruction.prototype.end = function(line) {
   return line;
 };
 
-var DropInstruction = function DropInstruction() {};
+var DropInstruction = function DropInstruction() {
+  if (!(this instanceof DropInstruction)) {
+    return new DropInstruction();
+  }
+};
 util.inherits(DropInstruction, IdentityInstruction);
 DropInstruction.prototype.start = function(line) {
   return null;
@@ -27,6 +35,9 @@ DropInstruction.prototype.end = function(line) {
 };
 
 var MinInstruction = function MinInstruction() {
+  if (!(this instanceof MinInstruction)) {
+    return new MinInstruction();
+  }
   this.jsPattern = /(<script[^>]+src="[^"]+)(\.js")/ig;
   this.cssPattern = /(<link[^>]+href="[^"]+)(\.css")/ig;
 };
@@ -40,6 +51,9 @@ MinInstruction.prototype.process = function(line) {
 };
 
 var AggregateInstruction = function AggregateInstruction(callback) {
+  if (!(this instanceof AggregateInstruction)) {
+    return new AggregateInstruction();
+  }
   this.jsPattern = /<script[^>]+src="([^"]+)"/i;
   this.callback = callback;
 };
@@ -67,9 +81,6 @@ AggregateInstruction.prototype.end = function(line) {
 var Transform = stream.Transform;
 
 var CommentProcessingTransform = function CommentProcessingTransform(options) {
-  if (!(this instanceof CommentProcessingTransform)) {
-    return new CommentProcessingTransform(options);
-  }
   this.defaultInstruction = new IdentityInstruction();
   this.instructions = options || {};
 
@@ -87,7 +98,7 @@ CommentProcessingTransform.prototype.__handleComment = function(line, current, m
     var newInstruction = this.instructions[instructionName];
     if (newInstruction) {
       current.instructionName = instructionName;
-      current.instruction = newInstruction;
+      current.instruction = newInstruction();
       line = current.instruction.start(line, instructionName, match[4], match.index);
     }
   } else if (scope === 'end' && current.instructionName === instructionName) {
@@ -130,11 +141,13 @@ module.exports = function(config) {
   return new CommentProcessingTransform(config);
 };
 module.exports.DropInstruction = function() {
-  return new DropInstruction();
+  return DropInstruction;
 };
 module.exports.MinInstruction = function() {
-  return new MinInstruction();
+  return MinInstruction;
 };
-module.exports.AggregateInstruction = function() {
-  return new AggregateInstruction();
+module.exports.AggregateInstruction = function(callback) {
+  return function() {
+    return new AggregateInstruction(callback);
+  };
 };

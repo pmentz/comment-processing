@@ -98,14 +98,33 @@ describe('comment-processings', function() {
       var inputFilename = path.join(this.sampleDir, 'valid.html');
       var expectedFilename = path.join(this.expectedDir, 'aggregateInstruction.html');
 
+      var doneCount = 2;
+      var finished = function() {
+        if (--doneCount === 0) {
+          done();
+        }
+      };
+
       var writer = fs.createWriteStream(outputFilename);
       writer.on('finish', function() {
         expect(fs.readFileSync(outputFilename, 'utf-8')).to.equal(fs.readFileSync(expectedFilename, 'utf-8'));
-        done();
+        finished();
       });
       fs.createReadStream(inputFilename).pipe(testee({aggregate: testee.AggregateInstruction(function(files) {
-        expect(files).to.equal(['script/one.js', 'script/two.js']);
+        expect(files).to.deep.equal(['script/one.js', 'script/two.js']);
+        finished();
       })})).pipe(writer);
+    });
+
+    it('handles the absence of a callback for the aggregate instruction', function(done) {
+      var outputFilename = path.join(this.outputDir, 'aggregateInstruction_noCallback.html');
+      var inputFilename = path.join(this.sampleDir, 'valid.html');
+
+      var writer = fs.createWriteStream(outputFilename);
+      writer.on('finish', function() {
+        done();
+      });
+      fs.createReadStream(inputFilename).pipe(testee({aggregate: testee.AggregateInstruction()})).pipe(writer);
     });
 
     it('applies multiple instructions', function(done) {
