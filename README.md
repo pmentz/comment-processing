@@ -78,6 +78,13 @@ while
   * commentProcessing.DropInstruction()
   * commentProcessing.MinInstruction()
   * commentProcessing.AggregateInstruction(*[callback]*)
+* Transform methods
+  * transform.addInstruction(name, instruction)
+  * transform.addInstructions(instructions)
+  * transform.setInstructions(instructions)
+  * transform.clearInstructions()
+  * transform.removeInstruction(name)
+  * transform.transformFile(inputFile, outputFile)
 
 ### commentProcessing([config])
 
@@ -211,6 +218,70 @@ commentProcessings.AggregateInstruction(function(sourceFiles, targetFile) {
 });
 ```
 
+### transform.addInstruction(name, instruction)
+
+Adds another instruction to the transforms registry.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({drop: commentProcessing.DropInstruction()});
+processing.addInstruction('add-min', commentProcessing.MinInstruction());
+```
+
+In this case, the transform will handle *drop* and *add-min*.
+
+### transform.addInstructions(instructions)
+
+Adds more instructions to the transform.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction()});
+processing.addInstructions({drop: commentProcessing.DropInstruction(), 
+                            min: commentProcessing.MinInstruction()});
+```
+
+In this case, the transform will handle *drop*, *min* and *delete*.
+
+### transform.setInstructions(instructions)
+
+Sets instructions to the transform. Previously configured instructions will be removed.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction()});
+processing.addInstructions({drop: commentProcessing.DropInstruction(), 
+                            min: commentProcessing.MinInstruction()});
+```
+
+In this case, the transform will handle *drop* and *min*, but **not** *delete*.
+
+### transform.clearInstructions()
+
+Will remove all instructions from the transform.
+
+### transform.removeInstruction(name)
+
+Will remove the instruction with the given name. The removed instruction will be returned. If no instruction with the
+given name was able, nothing happens.
+
+### transform.transformFile(inputFile, outputFile)
+
+Will read the given `inputFile`, process it and write it to the given `outputFile`. The method returns a promise, which
+can be used to handle the file creation.
+
+```javascript
+var commentProcessing = require('comment-processing');
+
+var processing = commentProcessing.withDefaults();
+processing.transformFile('src/index.html', 'dist/index.html').then(function() {
+  console.log('Finished transformation');
+});
+```
+
+**This module does not provide any promise polyfill**. So it's up to you to decide which one to use e.g.
+[es6-polyfill][].
+
 ## License
 
 MIT
@@ -219,3 +290,4 @@ MIT
 
 [experimental-img]: https://img.shields.io/badge/stability-1%20--%20experimental-orange.svg?style=flat-round
 [stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
+[es6-polyfill]: https://www.npmjs.com/package/es6-promise
