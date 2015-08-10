@@ -4,9 +4,10 @@
 
 var expect = require('chai').expect;
 var commentProcessing = require('../index');
-var Processing = require('../lib/processing');
+var DoneCriteria = require('done-criteria');
 var fs = require('fs');
 var path = require('path');
+var Processing = require('../lib/processing');
 var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
 
@@ -24,7 +25,7 @@ describe('comment-processings', function() {
     expect(commentProcessing).to.be.ok;
   });
 
-  it('creates a Transform with default configuration', function(done) {
+  it('creates a Transform with default configuration but without instructions', function(done) {
     var outputFilename = path.join(this.outputDir, 'withoutInstructions.html');
     var inputFilename = path.join(this.sampleDir, 'valid.html');
     var expectedFilename = inputFilename;
@@ -40,14 +41,18 @@ describe('comment-processings', function() {
     fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
   });
 
-  it('creates a Transform with given instructions', function(done) {
-    var outputFilename = path.join(this.outputDir, 'withInstructions.html');
+  it('creates a Transform with given configuration of instructions', function(done) {
+    var outputFilename = path.join(this.outputDir, 'ctor_withInstructions.html');
     var inputFilename = path.join(this.sampleDir, 'valid.html');
     var expectedFilename = path.join(this.expectedDir, 'withInstructions.html');
 
-    var testee = commentProcessing({instructions: {drop: commentProcessing.DropInstruction(),
-                                                    min: commentProcessing.MinInstruction(),
-                                              aggregate: commentProcessing.AggregateInstruction()}});
+    var testee = commentProcessing({
+      instructions: {
+        drop: commentProcessing.DropInstruction(),
+        min: commentProcessing.MinInstruction(),
+        aggregate: commentProcessing.AggregateInstruction()
+      }
+    });
 
     var writer = fs.createWriteStream(outputFilename);
     writer.on('finish', function() {
@@ -61,12 +66,67 @@ describe('comment-processings', function() {
     var outputFilename = path.join(this.outputDir, 'withDefaultInstruction.html');
     var inputFilename = path.join(this.sampleDir, 'valid.html');
 
-    var testee = commentProcessing({defaultInstruction: commentProcessing.DropInstruction()});
+    var testee = commentProcessing({
+      defaultInstruction: commentProcessing.DropInstruction()
+    });
 
     var writer = fs.createWriteStream(outputFilename);
     writer.on('finish', function() {
       expect(fs.readFileSync(outputFilename, 'utf-8')).to.equal('');
       done();
+    });
+    fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
+  });
+
+  it('creates a Transform with the given instructions using `.withInstructions`', function(done) {
+    var outputFilename = path.join(this.outputDir, 'withInstructions.html');
+    var inputFilename = path.join(this.sampleDir, 'valid.html');
+    var expectedFilename = path.join(this.expectedDir, 'withInstructions.html');
+
+    var testee = commentProcessing.withInstructions({
+      drop: commentProcessing.DropInstruction(),
+      min: commentProcessing.MinInstruction(),
+      aggregate: commentProcessing.AggregateInstruction()
+    });
+
+    var writer = fs.createWriteStream(outputFilename);
+    writer.on('finish', function() {
+      expect(fs.readFileSync(outputFilename, 'utf-8')).to.equal(fs.readFileSync(expectedFilename, 'utf-8'));
+      done();
+    });
+    fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
+  });
+
+  it('creates a Transform with default setup when calling `.withDefaults`', function(done) {
+    var outputFilename = path.join(this.outputDir, 'withDefaults.html');
+    var inputFilename = path.join(this.sampleDir, 'valid.html');
+    var expectedFilename = path.join(this.expectedDir, 'withInstructions.html');
+
+    var testee = commentProcessing.withDefaults();
+
+    var writer = fs.createWriteStream(outputFilename);
+    writer.on('finish', function() {
+      expect(fs.readFileSync(outputFilename, 'utf-8')).to.equal(fs.readFileSync(expectedFilename, 'utf-8'));
+      done();
+    });
+    fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
+  });
+
+  it('creates a Transform with default setup when calling `.withDefaults` with a aggregate callback', function(done) {
+    var outputFilename = path.join(this.outputDir, 'withDefaults_cb.html');
+    var inputFilename = path.join(this.sampleDir, 'valid.html');
+    var expectedFilename = path.join(this.expectedDir, 'withInstructions.html');
+
+    var patience = new DoneCriteria(2, done);
+
+    var testee = commentProcessing.withDefaults(function() {
+      patience.done();
+    });
+
+    var writer = fs.createWriteStream(outputFilename);
+    writer.on('finish', function() {
+      expect(fs.readFileSync(outputFilename, 'utf-8')).to.equal(fs.readFileSync(expectedFilename, 'utf-8'));
+      patience.done();
     });
     fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
   });

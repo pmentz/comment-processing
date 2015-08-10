@@ -70,6 +70,15 @@ while
 
 ## API
 
+* Creating a `stream.Transform`
+  * commentProcessing(*[config]* )
+  * commentProcessing.withInstructions(instructions)
+  * commentProcessing.withDefaults(*[aggregateFn]*)
+* Retrieving instructions
+  * commentProcessing.DropInstruction()
+  * commentProcessing.MinInstruction()
+  * commentProcessing.AggregateInstruction(*[callback]*)
+
 ### commentProcessing([config])
 
 Create a `stream.Transform` instance for transforming the input with `config` being an object registering processings
@@ -88,6 +97,39 @@ fs.createReadStream(inputFilename)
 
 This example will parse for comments with the name drop (drop:start and drop:end) and will remove all between them
 (including the comments itselfs). See below for provided instructions.
+
+### commentProcessing.withInstructions(instructions)
+
+Shortcut for `commentProcessing([config])`. Create a `stream.Transform` instance with a default configuration and the
+usage of the instructions given.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var fs = require('fs');
+
+fs.createReadStream(inputFilename)
+  .pipe(commentProcessing.withInstructions({drop: commentProcessing.DropInstruction()}))
+  .pipe(fs.createWriteStream(outputFilename));
+```
+
+### commentProcessing.withDefaults([aggregateFn])
+
+Shortcut for `commentProcessing([config])`. Create a `stream.Transform` instance with a default configuration and the
+usage of all default instructions available with the following configuration:
+
+* **drop**: DropInstruction
+* **min**: MinInstruction
+* **aggregate**: AggregateInstruction
+
+```javascript
+var commentProcessing = require('comment-processing');
+var fs = require('fs');
+
+fs.createReadStream(inputFilename)
+  .pipe(commentProcessing.withDefaults(function(sourceFiles, targetFile) {
+    // handle aggregate
+  })).pipe(fs.createWriteStream(outputFilename));
+```
 
 ### commentProcessing.DropInstruction()
 
