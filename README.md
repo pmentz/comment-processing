@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/pmentz/comment-processing.svg)](https://travis-ci.org/pmentz/comment-processing) [![Coverage Status](https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master)](https://coveralls.io/github/pmentz/comment-processing?branch=master)
-[![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies)
+[![Build Status](https://travis-ci.org/pmentz/comment-processing.svg?branch=master)](https://travis-ci.org/pmentz/comment-processing) [![Coverage Status](https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master)](https://coveralls.io/github/pmentz/comment-processing?branch=master) [![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies) [![experimental][experimental-img]][stability-url]
 
 # comment-processing
 Node module that transforms HTML/XML comments into processing instructions
@@ -175,3 +174,6 @@ commentProcessings.AggregateInstruction(function(sourceFiles, targetFile) {
 MIT
 
 [npm]:http://npmjs.org/
+
+[experimental-img]: https://img.shields.io/badge/stability-1%20--%20experimental-orange.svg?style=flat-round
+[stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
