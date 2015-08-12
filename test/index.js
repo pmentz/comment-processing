@@ -48,9 +48,9 @@ describe('comment-processings', function() {
 
     var testee = commentProcessing({
       instructions: {
-        drop: commentProcessing.DropInstruction(),
-        min: commentProcessing.MinInstruction(),
-        aggregate: commentProcessing.AggregateInstruction()
+        drop: commentProcessing.DropInstruction,
+        min: commentProcessing.MinInstruction,
+        aggregate: commentProcessing.AggregateInstruction
       }
     });
 
@@ -67,7 +67,7 @@ describe('comment-processings', function() {
     var inputFilename = path.join(this.sampleDir, 'valid.html');
 
     var testee = commentProcessing({
-      defaultInstruction: commentProcessing.DropInstruction()
+      defaultInstruction: commentProcessing.DropInstruction
     });
 
     var writer = fs.createWriteStream(outputFilename);
@@ -84,9 +84,9 @@ describe('comment-processings', function() {
     var expectedFilename = path.join(this.expectedDir, 'withInstructions.html');
 
     var testee = commentProcessing.withInstructions({
-      drop: commentProcessing.DropInstruction(),
-      min: commentProcessing.MinInstruction(),
-      aggregate: commentProcessing.AggregateInstruction()
+      drop: commentProcessing.DropInstruction,
+      min: commentProcessing.MinInstruction,
+      aggregate: commentProcessing.AggregateInstruction
     });
 
     var writer = fs.createWriteStream(outputFilename);
@@ -131,19 +131,26 @@ describe('comment-processings', function() {
     fs.createReadStream(inputFilename).pipe(testee).pipe(writer);
   });
 
-  it('provides a identity instruction', function() {
-    expect(commentProcessing.IdentityInstruction()).to.be.a('function');
+  it('provides an IdentityInstruction', function() {
+    expect(commentProcessing.IdentityInstruction).to.be.a('function');
   });
 
-  it('provides a drop instruction', function() {
-    expect(commentProcessing.DropInstruction()).to.be.a('function');
+  it('provides a DropInstruction', function() {
+    expect(commentProcessing.DropInstruction).to.be.a('function');
   });
 
-  it('provides an aggregation instruction', function() {
-    expect(commentProcessing.AggregateInstruction()).to.be.a('function');
+  it('provides an AggregationInstruction', function() {
+    expect(commentProcessing.AggregateInstruction).to.be.a('function');
   });
 
-  it('provides a min instruction', function() {
-    expect(commentProcessing.MinInstruction()).to.be.a('function');
+  it('provides a MinInstruction', function() {
+    expect(commentProcessing.MinInstruction).to.be.a('function');
+  });
+
+  it('creates a AggregateInstruction factory with `AggregateInstruction.factory(cb)`', function() {
+    expect(commentProcessing.AggregateInstruction.factory).to.be.a('function');
+    var callback = function() {};
+    var factory = commentProcessing.AggregateInstruction.factory(callback);
+    expect(factory().callback).to.equal(callback);
   });
 });

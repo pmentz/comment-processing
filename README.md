@@ -22,6 +22,8 @@ Instructions *(like drop in this case)* are customizable.
 * Use 
     * `npm install comment-processings` to retrieve the module or 
     * `npm install comment-processings -S` to save the dependency to your package.json.
+* *If you want to use the `transformFile` method and are using Node <= v0.10.0 you will need a
+[Promise polyfill][es6-promise]*
 
 ## Description
 
@@ -68,16 +70,16 @@ while
 <!-- bad:start --> .. some markup <!-- bad:end -->
 ```
 
+## Examples
+
+tbd
+
 ## API
 
 * Creating a `stream.Transform`
   * commentProcessing(*[config]* )
   * commentProcessing.withInstructions(instructions)
   * commentProcessing.withDefaults(*[aggregateFn]*)
-* Retrieving instructions
-  * commentProcessing.DropInstruction()
-  * commentProcessing.MinInstruction()
-  * commentProcessing.AggregateInstruction(*[callback]*)
 * Transform methods
   * transform.addInstruction(name, instruction)
   * transform.addInstructions(instructions)
@@ -85,6 +87,16 @@ while
   * transform.clearInstructions()
   * transform.removeInstruction(name)
   * transform.transformFile(inputFile, outputFile)
+* Instructions
+  * commentProcessing.IdentityInstruction()
+  * commentProcessing.DropInstruction()
+  * commentProcessing.MinInstruction()
+  * commentProcessing.AggregateInstruction(*[callback]*)
+    * commentProcessing.AggregateInstruction.factory(*[callback]*)
+* Instruction interface
+  * instruction.start(line, name, arg, index)
+  * instruction.process(line)
+  * instruction.end(line)
 
 ### commentProcessing([config])
 
@@ -95,7 +107,7 @@ under a name.
 var commentProcessing = require('comment-processing');
 var fs = require('fs');
 
-var config = {instructions: {drop: commentProcessing.DropInstruction()}};
+var config = {instructions: {drop: commentProcessing.DropInstruction}};
 
 fs.createReadStream(inputFilename)
   .pipe(commentProcessing(config))
@@ -115,7 +127,7 @@ var commentProcessing = require('comment-processing');
 var fs = require('fs');
 
 fs.createReadStream(inputFilename)
-  .pipe(commentProcessing.withInstructions({drop: commentProcessing.DropInstruction()}))
+  .pipe(commentProcessing.withInstructions({drop: commentProcessing.DropInstruction}))
   .pipe(fs.createWriteStream(outputFilename));
 ```
 
@@ -137,6 +149,70 @@ fs.createReadStream(inputFilename)
     // handle aggregate
   })).pipe(fs.createWriteStream(outputFilename));
 ```
+
+### transform.addInstruction(name, instruction)
+
+Adds another instruction to the transforms registry.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({drop: commentProcessing.DropInstruction});
+processing.addInstruction('add-min', commentProcessing.MinInstruction);
+```
+
+In this case, the transform will handle *drop* and *add-min*.
+
+### transform.addInstructions(instructions)
+
+Adds more instructions to the transform.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction});
+processing.addInstructions({drop: commentProcessing.DropInstruction, 
+                            min: commentProcessing.MinInstruction});
+```
+
+In this case, the transform will handle *drop*, *min* and *delete*.
+
+### transform.setInstructions(instructions)
+
+Sets instructions to the transform. Previously configured instructions will be removed.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction});
+processing.addInstructions({drop: commentProcessing.DropInstruction, 
+                             min: commentProcessing.MinInstruction});
+```
+
+In this case, the transform will handle *drop* and *min*, but **not** *delete*.
+
+### transform.clearInstructions()
+
+Will remove all instructions from the transform.
+
+### transform.removeInstruction(name)
+
+Will remove the instruction with the given name. The removed instruction will be returned. If no instruction with the
+given name was able, nothing happens.
+
+### transform.transformFile(inputFile, outputFile)
+
+Will read the given `inputFile`, process it and write it to the given `outputFile`. The method returns a promise, which
+can be used to handle the file creation.
+
+```javascript
+var commentProcessing = require('comment-processing');
+
+var processing = commentProcessing.withDefaults();
+processing.transformFile('src/index.html', 'dist/index.html').then(function() {
+  console.log('Finished transformation');
+});
+```
+
+**This module does not provide any promise polyfill**. So it's up to you to decide which one to use e.g.
+[es6-promise][].
 
 ### commentProcessing.DropInstruction()
 
@@ -187,7 +263,7 @@ Before, when creating the aggregation instruction instance, you can define a cal
 files collected.
 
 ```javascript
-commentProcessing.AggregateInstruction(function(sourceFiles, targetFile) {
+commentProcessing.AggregateInstruction.factory(function(sourceFiles, targetFile) {
   // do something with sourceFiles, e.g. uglify
 }
 ```
@@ -210,77 +286,38 @@ var mkdir = require('mkdirp-promise');
 var path = require('path');
 var uglify = require('uglify-js')
 
-commentProcessings.AggregateInstruction(function(sourceFiles, targetFile) {
+commentProcessings.AggregateInstruction.factory(function(sourceFiles, targetFile) {
   var uglified = uglify.minify(sourceFiles);
   mkdir(path.dirname(targetFile)).then(function() {
     fs.writeFile(targetFile, uglified.code);
   })
 });
 ```
+#### commentProcessing.AggregateInstruction.factory(*[callback]*)
 
-### transform.addInstruction(name, instruction)
-
-Adds another instruction to the transforms registry.
-
-```javascript
-var commentProcessing = require('comment-processing');
-var processing = commentProcessing.withInstructions({drop: commentProcessing.DropInstruction()});
-processing.addInstruction('add-min', commentProcessing.MinInstruction());
-```
-
-In this case, the transform will handle *drop* and *add-min*.
-
-### transform.addInstructions(instructions)
-
-Adds more instructions to the transform.
+Creates a factory for AggregateInstructions. As the configuration of a processing needs a method to create instances of
+the instructions and the AggregateInstruction may need a callback which should be uses when the instance is created, 
+this method returns a function that will create well configured objects.
 
 ```javascript
-var commentProcessing = require('comment-processing');
-var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction()});
-processing.addInstructions({drop: commentProcessing.DropInstruction(), 
-                            min: commentProcessing.MinInstruction()});
+var myProcessing = commentProcessing();
+myProcessing.addInstruction('concat', 
+    commentProcessing.AggregateInstruction.factory(function(sourceFiles, targetFile) {
+      // concat the files
+    });
 ```
 
-In this case, the transform will handle *drop*, *min* and *delete*.
+### instruction.start(line, name, arg, index)
 
-### transform.setInstructions(instructions)
+tbd
 
-Sets instructions to the transform. Previously configured instructions will be removed.
+### instruction.process(line)
 
-```javascript
-var commentProcessing = require('comment-processing');
-var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction()});
-processing.addInstructions({drop: commentProcessing.DropInstruction(), 
-                            min: commentProcessing.MinInstruction()});
-```
+tbd
 
-In this case, the transform will handle *drop* and *min*, but **not** *delete*.
+### instruction.end(line)
 
-### transform.clearInstructions()
-
-Will remove all instructions from the transform.
-
-### transform.removeInstruction(name)
-
-Will remove the instruction with the given name. The removed instruction will be returned. If no instruction with the
-given name was able, nothing happens.
-
-### transform.transformFile(inputFile, outputFile)
-
-Will read the given `inputFile`, process it and write it to the given `outputFile`. The method returns a promise, which
-can be used to handle the file creation.
-
-```javascript
-var commentProcessing = require('comment-processing');
-
-var processing = commentProcessing.withDefaults();
-processing.transformFile('src/index.html', 'dist/index.html').then(function() {
-  console.log('Finished transformation');
-});
-```
-
-**This module does not provide any promise polyfill**. So it's up to you to decide which one to use e.g.
-[es6-polyfill][].
+tbd
 
 ## License
 
@@ -290,4 +327,4 @@ MIT
 
 [experimental-img]: https://img.shields.io/badge/stability-1%20--%20experimental-orange.svg?style=flat-round
 [stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
-[es6-polyfill]: https://www.npmjs.com/package/es6-promise
+[es6-promise]: https://www.npmjs.com/package/es6-promise
