@@ -3,20 +3,7 @@
 [![NPM](https://nodei.co/npm/comment-processing.png?compact=true)](https://nodei.co/npm/comment-processing/)
 
 # comment-processing
-Node module that transforms HTML/XML comments into processing instructions
-
-## Abstract
-
-Use HTML start- and end-comments for processing files during Node transforms. G.e. to remove parts that are only
-required for development.
-
-```html
-<!-- drop:start -->
-<script src="livereload.js"></script>
-<!-- drop:end -->
-```
-
-Instructions *(like drop in this case)* are customizable.
+Node module that transforms HTML/XML comments into processing instructions.
 
 ## Installation
 
@@ -27,54 +14,236 @@ Instructions *(like drop in this case)* are customizable.
 * *If you want to use the `transformFile` method and are using Node <= v0.10.0 you will need a
 [Promise polyfill][es6-promise]*
 
-## Description
+## Guide
+### Use comment-processing
 
-Comment processings are added to HTML (or XML) using comments. One comments marks the start of a block, another comment
-marks the end. You can provide processing instructions for the handling of the code in between those comments.
+I recognized common tasks to transform my development stage *index.html* into productive ones:
+The first one is to simply remove parts of the markup, like the livereload script for example.  
+Another one is to switch to the minimized versions of 3rd party scripts. In most cases this simply means to add a *.min*
+extension to the javascript and css files. The last one is to collect all my javascript resources and then concat and 
+minimize them into a single file.
 
-```html
-<!-- processing:start -->
-.. some markup ..
-<!-- processing:end -->
-```
+This is why I wrote this module to do those transformations, it is possible to mark section with start- and end-comments
+to trigger processing instructions. I got some prepared in this module, but basically the processing is extendable and
+customizable.
 
-You can provide further configuration for a processing, therefore you can add additional input to the start instruction.
-
-```html
-<!-- generate-file:start desired/filename.svg -->
-.. some markup ..
-<!-- generate-file:end -->
-```
-
-Be aware, that only one additional argument is allowed and it must not have whitespaces. You can provide multiple 
-arguments, by using a separator, but not whitespaces.
+So this is would be an *index.html* file during development:
 
 ```html
-<!-- processing:start arg1,arg2,arg3 -->
-.. some markup ..
-<!-- processing:end -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="livereload.js"></script>
+
+    <script src="components/foo.js"></script>
+    <script src="components/bar.js"></script>
+    <link rel="stylesheet" href="components/fb.css">
+  </head>
+  
+  <body>
+
+    <script src="script/one.js"></script>
+    <script src="script/two.js"></script>
+  </body>
+</html>
 ```
 
-This module uses regular expressions to evaluate the content, to be able to output the file (except modified lines) as 
-they where in first place. Using a parser and building an internal model would probably generate output that is
-formatted differently or normalized. This is the reason why **you should place the instruction comments always on 
-separate lines**.
+while my productive one should look like:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="components/foo.min.js"></script>
+    <script src="components/bar.min.js"></script>
+    <link rel="stylesheet" href="components/fb.min.css">
+  </head>
+  
+  <body>
+
+    <script src="application.min.js"</script>
+  </body>
+</html>
+```
+
+First of all, I need to mark the relevant blocks for the instructions.
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- drop:start -->
+    <script src="livereload.js"></script>
+    <!-- drop:end -->
+    <!-- min:start -->
+    <script src="components/foo.js"></script>
+    <script src="components/bar.js"></script>
+    <link rel="stylesheet" href="components/fb.css">
+    <!-- min:end -->
+  </head>
+  
+  <body>
+
+    <!-- aggregate:start application.min.js -->
+    <script src="script/one.js"></script>
+    <script src="script/two.js"></script>
+    <!-- aggregate:end -->
+  </body>
+</html>
+```
+
+I think it's pretty clear, how to mark the blocks. You will recognize one speciality in the *aggregate:start* comment,
+because it also defines an additional argument for the aggregate instruction, the name of the file to generate.
+
+So I have to do a transformation somehow, this is where comment-processing comes into play.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var fs = require('fs');
+
+var processing = commentProcessing();
+
+fs.createReadStream('src/index.html')
+  .pipe(processing)
+  .pipe(fs.createWriteStream('dist/index.html'));
+```
+
+This will read your source index file, transform it and write it out into our distribution index file. But the file
+will look exactly the same than the index file, we have to do some configurations:
+
+```javascript
+var processing = commentProcessing();
+processing.addInstruction('drop', commentProcessing.DropInstruction);
+processing.addInstruction('min', commentProcessing.MinInstruction);
+```
+
+This will capture the first two cases. The DropInstruction will simply remove lines, the MinInstruction will add the
+*.min* extension to javascript and css files. They are registered under a name, which means, that you can use custom 
+names for the instructions. The second parameter is the actual instruction, this is a function, that will create an
+instance.  
+The AggregateInstruction is more complex, because it needs a callback that defines what to do with the files collected.
+So the instruction itself only collects the names and writes a reference to the configured file, but it does not do any
+thing with the files. **But hold on**, there are solutions on the way, but let's do it step-by-step. Let's configure our
+aggregate:
+
+```javascript
+var fs = require('fs');
+var mkdir = require('mkdirp-promise');
+var path = require('path');
+var uglify = require('uglify-js')
+
+var processing = commentProcessing();
+processing.addInstruction('aggregate',
+    commentProcessing.AggregateInstruction.factory(function(sourceFiles, targetFile) {
+      var uglified = uglify.minify(sourceFiles);
+      mkdir(path.dirname(targetFile)).then(function() {
+        fs.writeFile(targetFile, uglified.code);
+      })
+    }));
+```
+
+You see some additional dependencies we need for this one. Actually this is the reason why I did not provide this 
+instruction in the first place, because the module would have dependency, which you may not need. The instruction will
+come as a separate module.
+
+So let's put this all together:
+
+```javascript
+var commentProcessing = require('comment-processing');
+var fs = require('fs');
+
+var processing = commentProcessing.withInstructions({
+  drop: commentProcessing.DropInstruction,
+  min: commentProcessing.MinInstruction,
+  aggregate: commentProcessing.AggregateInstruction.factory(function(soureFiles, targetFile) {
+    ...
+  })
+});
+
+fs.createReadStream('src/index.html')
+  .pipe(processing)
+  .pipe(fs.createWriteStream('dist/index.html'));
+```
+
+I think good defaults are important, this is why we can ease this up. First thing is the configuration of the
+instructions: If you want to get all the instructions without the names reconfigured, there is a method for that:
+
+```javascript
+var processing = commentProcessing.withDefaults(function(sourceFiles, targetFile) {
+  ...
+})
+```
+
+So all you need is to define the callback, but you can also leave it out, if you don't use this instruction at all.
+
+As the processing is a `stream.Transform`, it can be piped into streams, but if you simply want to create the index
+file, you can use another shortcut:
+
+```javascript
+processing.transformFile('src/index.html', 'dist/index.html');
+```
+
+This method will return a Promise. Make sure your runtime does provide it, which means you should be using Node > v0.10
+or you need a polyfill of your trust. If you got none, try [es6-promise][].
+
+So to put it together:
+
+```javascript
+var commentProcessing = require('comment-processing');
+
+commentProcessing.withDefaults(function(sourceFiles, targetFile) {
+  ...
+}).transformFile('src/index.html', 'dist/index.html');
+```
+
+### Write custom instruction
+
+tbd
+
+## Design Decisions
+### Dependencies
+This module is implemented to be the basics of the comment processing, no dependencies are needed.  
+Instruction that have further dependencies are provided as separate module, so will only got those dependencies if you
+really need them.  
+The promise polyfill is only needed for old Node versions, so I don't want to add this dependencies, to be not needed in
+most cases. And on the other hand, there are a lot of polyfills for promises, so you should decide which one to use, not
+me.
+
+### Regular Expressions vs Parser
+I decided to use Regular Expressions to find comments and not to use a Parser. This decision was made, because if I
+would parse the file and transform the markup in memory, I would have to marshal the markup in memory, which would look
+differently in the end. There would probably another indentation, some tags may be extended or normalized. But I want
+the markup to be as good or bad as I wrote it, besides the transformations I configured, this is why I use Regular
+Expressions to handle the lines of the file. 
+
+But this on the other hand also causes some troubles, especially if the elements are not separated by line breaks. So
+keep in mind:
 
 ```html
 <!-- good:start -->
-.. some markup
+.. some good markup
 <!-- good:end -->
 ```
 
 while
 
 ```html
-<!-- bad:start --> .. some markup <!-- bad:end -->
+<!-- bad:start --> .. some bad markup <!-- bad:end -->
 ```
 
-## Examples
+### Nesting
 
-tbd
+```html
+<!-- outer:start -->
+.. some markup
+<!-- inner:start -->
+.. some more markup
+<!-- inner:end -->
+<!-- outer:end -->
+```
+
+It was no actual design decision to not allow nesting of instructions, it was just to keep things simple. Maybe I will 
+add this feature one day.
 
 ## API
 
