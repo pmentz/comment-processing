@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/pmentz/comment-processing.svg?branch=master)](https://travis-ci.org/pmentz/comment-processing) [![Coverage Status](https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master)](https://coveralls.io/github/pmentz/comment-processing?branch=master) [![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies) [![experimental][experimental-img]][stability-url]
 
+[![NPM](https://nodei.co/npm/comment-processing.png?compact=true)](https://nodei.co/npm/comment-processing/)
+
 # comment-processing
 Node module that transforms HTML/XML comments into processing instructions
 
@@ -20,8 +22,8 @@ Instructions *(like drop in this case)* are customizable.
 
 * You need to have [npm][npm] installed.  
 * Use 
-    * `npm install comment-processings` to retrieve the module or 
-    * `npm install comment-processings -S` to save the dependency to your package.json.
+    * `npm install comment-processing` to retrieve the module or 
+    * `npm install comment-processing -S` to save the dependency to your package.json.
 * *If you want to use the `transformFile` method and are using Node <= v0.10.0 you will need a
 [Promise polyfill][es6-promise]*
 
