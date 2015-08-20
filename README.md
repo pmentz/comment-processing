@@ -1,6 +1,5 @@
-[![Build Status](https://travis-ci.org/pmentz/comment-processing.svg?branch=master)](https://travis-ci.org/pmentz/comment-processing) [![Coverage Status](https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master)](https://coveralls.io/github/pmentz/comment-processing?branch=master) [![Dependency Status](https://david-dm.org/pmentz/comment-processing.svg)](https://david-dm.org/pmentz/comment-processing) [![devDependency Status](https://david-dm.org/pmentz/comment-processing/dev-status.svg)](https://david-dm.org/pmentz/comment-processing#info=devDependencies) [![experimental][experimental-img]][stability-url]
-
-[![NPM](https://nodei.co/npm/comment-processing.png?compact=true)](https://nodei.co/npm/comment-processing/)
+[![Build Status][buildstatus-img]][buildstatus-url] [![Coverage Status][coverage-img]][coverage-url] [![Dependency Status][dependency-img]][dependency-url] [![devDependency Status][devDependency-img]][devDependency-url] [![stable][stable-img]][stability-url]  
+[![NPM][nodei-img]][nodei-url]
 
 # comment-processing
 Node module that transforms HTML/XML comments into processing instructions.
@@ -142,9 +141,7 @@ processing.addInstruction('aggregate',
     }));
 ```
 
-You see some additional dependencies we need for this one. Actually this is the reason why I did not provide this 
-instruction in the first place, because the module would have dependency, which you may not need. The instruction will
-come as a separate module.
+You see some additional dependencies we need for this one. Actually this is the reason why I did not provide thisinstruction in the first place, because the module would have dependency, which you may not need. But the instruction is available [as a separate module][uglify-instruction].
 
 So let's put this all together:
 
@@ -196,9 +193,91 @@ commentProcessing.withDefaults(function(sourceFiles, targetFile) {
 }).transformFile('src/index.html', 'dist/index.html');
 ```
 
+### Tips
+
+You can use the callback of the AggregateInstruction for a lot of stuff, but you can also just ignore this features and use it as a replace instruction.
+
+```html
+<!-- replace:start script/config.prod.js -->
+<script src="script/config.dev.js"></script>
+<!-- replace:end -->
+```
+
+```javascript
+processing.addInstruction('replace', commentProcessing.AggregateInstruction);
+```
+
 ### Write custom instruction
 
-tbd
+So this module provides some instructions and more instructions may available in separate modules. But sooner or later you will have the need for an instruction that is not available yet and that's the point where you want to implement one on your own.
+
+The signature if instructions is quite simple, you have to provide an object with 3 methods and a function that creates such an object. One of the many ways to do so in Javascript is to create a constructor and implement its prototype.
+
+So let's take the default example something, that turns everything into uppercase, whyever.
+
+```html
+<!-- upper:start -->
+<p>Hello World</p>
+<!-- upper:end -->
+```
+
+should be transformed into
+
+```html
+<P>HELLO WORLD</P>
+```
+
+to implement this, we could simply do the following
+
+```javascript
+var UpperInstruction = function UpperInstruction() {
+  if (!(this instanceof UpperInstruction)) {
+    return new UpperInstruction();
+  }
+};
+UpperInstruction.prototype.start = function(line, name, arg, index) {
+  return null;
+};
+UpperInstruction.prototype.process = function(line) {
+  return line.toLowercase();
+};
+UpperInstruction.prototype.end = function(line) {
+  return null;
+};
+```
+
+The first one is the constructor, which can be used with `new` or as a function. Then there is the `start` method which is called with the contents of the start-comment, while end will be called with the contents of the end-comment. The process method will be called with every single line in between those two.
+
+The purpose of the methods is to do what ever they need to do to do their business and to return what should be rendered into the outcome. If you return null, this line will be skipped.  
+So in this case, we will skip the start- and end-comments and will do an uppercase on the lines in between.
+
+There is already an instruction that is dropping code, it's the DropInstruction, extending this one, will reduce the code we have to write.
+
+```javascript
+var commentProcessing = require('comment-processing');
+var util = require('util');
+
+var UpperInstruction = function UpperInstruction() {
+  if (!(this instanceof UpperInstruction)) {
+    return new UpperInstruction();
+  }
+};
+util.inherits(UpperInstruction, commentProcessing.DropInstruction);
+UpperInstruction.prototype.process = function(line) {
+  return line.toLowercase();
+};
+```
+
+Finally we can register our custom instruction as any other instruction:
+
+```javascript
+var commentProcessing = require('comment-processing');
+
+var processing = commentProcessing();
+processing.addInstruction('upper', UpperInstruction);
+```
+
+Congrats, that is the basics. For more information, refer to the [instruction's API](#api).
 
 ## Design Decisions
 ### Dependencies
@@ -248,26 +327,26 @@ add this feature one day.
 ## API
 
 * Creating a `stream.Transform`
-  * commentProcessing(*[config]* )
-  * commentProcessing.withInstructions(instructions)
-  * commentProcessing.withDefaults(*[aggregateFn]*)
+  * [commentProcessing(*[config]*)](#commentprocessingconfig)
+  * [commentProcessing.withInstructions(instructions)](#commentprocessingwithinstructionsinstructions)
+  * [commentProcessing.withDefaults(*[aggregateFn]*)](#commentprocessingwithdefaultsaggregatefn)
 * Transform methods
-  * transform.addInstruction(name, instruction)
-  * transform.addInstructions(instructions)
-  * transform.setInstructions(instructions)
-  * transform.clearInstructions()
-  * transform.removeInstruction(name)
-  * transform.transformFile(inputFile, outputFile)
+  * [transform.addInstruction(name, instruction)](#transformaddinstructionname-instruction)
+  * [transform.addInstructions(instructions)](#transformaddinstructionsinstructions)
+  * [transform.setInstructions(instructions)](#transformsetinstructionsinstructions)
+  * [transform.clearInstructions()](#transformclearinstructions)
+  * [transform.removeInstruction(name)](#transformremoveinstructionname)
+  * [transform.transformFile(inputFile, outputFile)](#transformtransformfileinputfile-outputfile)
 * Instructions
-  * commentProcessing.IdentityInstruction()
-  * commentProcessing.DropInstruction()
-  * commentProcessing.MinInstruction()
-  * commentProcessing.AggregateInstruction(*[callback]*)
-    * commentProcessing.AggregateInstruction.factory(*[callback]*)
+  * [commentProcessing.IdentityInstruction()](#commentprocessingidentityinstruction)
+  * [commentProcessing.DropInstruction()](#commentprocessingdropinstruction)
+  * [commentProcessing.MinInstruction()](#commentprocessingmininstruction)
+  * [commentProcessing.AggregateInstruction(*[callback]*)](#commentprocessingaggregateinstructioncallback)
+    * [commentProcessing.AggregateInstruction.factory(*[callback]*)](#commentprocessingaggregateinstructionfactorycallback)
 * Instruction interface
-  * instruction.start(line, name, arg, index)
-  * instruction.process(line)
-  * instruction.end(line)
+  * [instruction.start(line, name, arg, index)](#instructionstartline-name-arg-index)
+  * [instruction.process(line)](#instructionprocessline)
+  * [instruction.end(line)](#instructionendline)
 
 ### commentProcessing([config])
 
@@ -385,6 +464,10 @@ processing.transformFile('src/index.html', 'dist/index.html').then(function() {
 **This module does not provide any promise polyfill**. So it's up to you to decide which one to use e.g.
 [es6-promise][].
 
+### commentProcessing.IdentityInstruction()
+
+Returns a factory method of an instruction that just returns what it gets, so it does not change anything.
+
 ### commentProcessing.DropInstruction()
 
 Returns a factory method of an instruction that deletes the start and end comment, as well as everything in between.
@@ -480,22 +563,52 @@ myProcessing.addInstruction('concat',
 
 ### instruction.start(line, name, arg, index)
 
-tbd
+Called when a comment was found that matches the name this instruction was registered with. 
+
+* `line` is the string containing the complete line this comment was found (until the next newline character).
+* `name` is the actual name of the instruction, as it could be registered under several names. 
+* `arg` is the argument that was given to the comment, like *theArgument* in
+
+    ```html
+    <!-- instructionName:start theArgument -->
+    ```
+    
+* `index` is the position in `line` where the comment started. This can be used to ensure the indentation when creating output.
+
+This method has to return the transformed output for this line. In most cases this will be `null` for no output.
 
 ### instruction.process(line)
 
-tbd
+Called for every line within the start and the end comment.
+
+`line` will contain the complete line as a string. The method has to return the transformed output for this line. If you don't want an output for this line, you can return `null`.
 
 ### instruction.end(line)
 
-tbd
+Callen when the end comment was found.
+
+`line` will contain the complete line with the end comment as a string. 
+
+This method has to return the transformed output for this line. In most cases this will be `null` for no output.
 
 ## License
 
 MIT
 
 [npm]:http://npmjs.org/
-
-[experimental-img]: https://img.shields.io/badge/stability-1%20--%20experimental-orange.svg?style=flat-round
-[stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
 [es6-promise]: https://www.npmjs.com/package/es6-promise
+[uglify-instruction]: https://www.npmjs.com/package/uglify-instruction
+
+[buildstatus-img]: https://travis-ci.org/pmentz/comment-processing.svg?branch=master
+[buildstatus-url]: https://travis-ci.org/pmentz/comment-processing
+[coverage-img]: https://coveralls.io/repos/pmentz/comment-processing/badge.svg?service=github&branch=master
+[coverage-url]: https://coveralls.io/github/pmentz/comment-processing?branch=master
+[dependency-img]: https://david-dm.org/pmentz/comment-processing.svg
+[dependency-url]: https://david-dm.org/pmentz/comment-processing
+[devDependency-img]: https://david-dm.org/pmentz/comment-processing/dev-status.svg
+[devDependency-url]: https://david-dm.org/pmentz/comment-processing#info=devDependencies
+[stable-img]: https://img.shields.io/badge/stability-2%20--%20stable-brightgreen.svg?style=flat-round
+[stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
+[nodei-img]: https://nodei.co/npm/comment-processing.png?compact=true
+[nodei-url]: https://nodei.co/npm/comment-processing/
+
