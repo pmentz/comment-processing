@@ -91,22 +91,33 @@ describe('instructions', function() {
     it('returns null on start', function() {
       expect(this.testee.start('Start line')).to.be.null;
     });
-    it('returns null on process', function() {
+    it('returns null when processing scripts', function() {
       expect(this.testee.process('<script src="foo/bar.js"></script>')).to.be.null;
     });
-    it('returns the arg name on end', function() {
+    it('returns null when processing links', function() {
+      expect(this.testee.process('<link rel="stylesheet" href="foo/bar.css">')).to.be.null;
+    });
+    it('returns null when processing else', function() {
+      expect(this.testee.process('<h1>Hello World</h1>')).to.be.null;
+    });
+    it('returns the arg name in a script on end', function() {
       this.testee.start(null, null, 'foobar.js', 3);
       expect(this.testee.end('end line')).to.equal('   <script src="foobar.js"></script>');
     });
+    it('returns the arg name in a link on end when css', function() {
+      this.testee.start(null, null, 'foobar.css', 3);
+      expect(this.testee.end('end line')).to.equal('   <link rel="stylesheet" href="foobar.css">');
+    });
     it('calls the callback function on end', function(done) {
       this.testee = new instructions.AggregateInstruction(function(sourceFiles, targetFile) {
-        expect(sourceFiles).to.deep.equal(['foo/bar.js', 'bar/foo.js']);
+        expect(sourceFiles).to.deep.equal(['foo/bar.js','foo/bar.css', 'bar/foo.js']);
         expect(targetFile).to.equal('foobar.js');
         done();
       });
       this.testee.start(null, null, 'foobar.js', 2);
       this.testee.process('  <script src="foo/bar.js"></script>');
       this.testee.process('yada');
+      this.testee.process('<link rel="stylesheet" href="foo/bar.css">');
       this.testee.process('<script src="bar/foo.js"></script>');
       this.testee.end('end line');
     });

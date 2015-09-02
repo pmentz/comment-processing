@@ -156,6 +156,13 @@ describe('processing', function() {
     expect(testee.instructions).to.not.contain.keys('bar');
   });
 
+  it('removes nothing with `removeInstruction(invalidName)`', function() {
+    var testee = new Processing({
+      defaultInstruction: instructions.IdentityInstruction
+    });
+    expect(testee.removeInstruction('foo')).to.be.null;
+  });
+
   it('transforms a file asyncronously with `transformFile()`', function(done) {
     var outputFilename = path.join(this.outputDir, 'transformFile.html');
     var inputFilename = path.join(this.sampleDir, 'valid.html');

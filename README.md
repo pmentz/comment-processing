@@ -7,8 +7,8 @@ Node module that transforms HTML/XML comments into processing instructions.
 ## Installation
 
 * You need to have [npm][npm] installed.  
-* Use 
-    * `npm install comment-processing` to retrieve the module or 
+* Use
+    * `npm install comment-processing` to retrieve the module or
     * `npm install comment-processing -S` to save the dependency to your package.json.
 * *If you want to use the `transformFile` method and are using Node <= v0.10.0 you will need a
 [Promise polyfill][es6-promise]*
@@ -19,7 +19,7 @@ Node module that transforms HTML/XML comments into processing instructions.
 I recognized common tasks to transform my development stage *index.html* into productive ones:
 The first one is to simply remove parts of the markup, like the livereload script for example.  
 Another one is to switch to the minimized versions of 3rd party scripts. In most cases this simply means to add a *.min*
-extension to the javascript and css files. The last one is to collect all my javascript resources and then concat and 
+extension to the javascript and css files. The last one is to collect all my javascript resources and then concat and
 minimize them into a single file.
 
 This is why I wrote this module to do those transformations, it is possible to mark section with start- and end-comments
@@ -38,7 +38,7 @@ So this is would be an *index.html* file during development:
     <script src="components/bar.js"></script>
     <link rel="stylesheet" href="components/fb.css">
   </head>
-  
+
   <body>
 
     <script src="script/one.js"></script>
@@ -57,7 +57,7 @@ while my productive one should look like:
     <script src="components/bar.min.js"></script>
     <link rel="stylesheet" href="components/fb.min.css">
   </head>
-  
+
   <body>
 
     <script src="application.min.js"</script>
@@ -80,7 +80,7 @@ First of all, I need to mark the relevant blocks for the instructions.
     <link rel="stylesheet" href="components/fb.css">
     <!-- min:end -->
   </head>
-  
+
   <body>
 
     <!-- aggregate:start application.min.js -->
@@ -117,7 +117,7 @@ processing.addInstruction('min', commentProcessing.MinInstruction);
 ```
 
 This will capture the first two cases. The DropInstruction will simply remove lines, the MinInstruction will add the
-*.min* extension to javascript and css files. They are registered under a name, which means, that you can use custom 
+*.min* extension to javascript and css files. They are registered under a name, which means, that you can use custom
 names for the instructions. The second parameter is the actual instruction, this is a function, that will create an
 instance.  
 The AggregateInstruction is more complex, because it needs a callback that defines what to do with the files collected.
@@ -141,7 +141,7 @@ processing.addInstruction('aggregate',
     }));
 ```
 
-You see some additional dependencies we need for this one. Actually this is the reason why I did not provide thisinstruction in the first place, because the module would have dependency, which you may not need. But the instruction is available [as a separate module][uglify-instruction].
+You see some additional dependencies we need for this one. Actually this is the reason why I did not provide thisinstruction in the first place, because the module would have dependency, which you may not need. But the instruction is available [as a separate module][uglify-instruction] and also capable to uglify css files.
 
 So let's put this all together:
 
@@ -293,7 +293,7 @@ I decided to use Regular Expressions to find comments and not to use a Parser. T
 would parse the file and transform the markup in memory, I would have to marshal the markup in memory, which would look
 differently in the end. There would probably another indentation, some tags may be extended or normalized. But I want
 the markup to be as good or bad as I wrote it, besides the transformations I configured, this is why I use Regular
-Expressions to handle the lines of the file. 
+Expressions to handle the lines of the file.
 
 But this on the other hand also causes some troubles, especially if the elements are not separated by line breaks. So
 keep in mind:
@@ -321,7 +321,7 @@ while
 <!-- outer:end -->
 ```
 
-It was no actual design decision to not allow nesting of instructions, it was just to keep things simple. Maybe I will 
+It was no actual design decision to not allow nesting of instructions, it was just to keep things simple. Maybe I will
 add this feature one day.
 
 ## API
@@ -343,6 +343,7 @@ add this feature one day.
   * [commentProcessing.MinInstruction()](#commentprocessingmininstruction)
   * [commentProcessing.AggregateInstruction(*[callback]*)](#commentprocessingaggregateinstructioncallback)
     * [commentProcessing.AggregateInstruction.factory(*[callback]*)](#commentprocessingaggregateinstructionfactorycallback)
+    * [aggregateProcessing.hasCssTarget()](#aggregateProcessinghasCssTarget)
 * Instruction interface
   * [instruction.start(line, name, arg, index)](#instructionstartline-name-arg-index)
   * [instruction.process(line)](#instructionprocessline)
@@ -419,7 +420,7 @@ Adds more instructions to the transform.
 ```javascript
 var commentProcessing = require('comment-processing');
 var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction});
-processing.addInstructions({drop: commentProcessing.DropInstruction, 
+processing.addInstructions({drop: commentProcessing.DropInstruction,
                             min: commentProcessing.MinInstruction});
 ```
 
@@ -432,7 +433,7 @@ Sets instructions to the transform. Previously configured instructions will be r
 ```javascript
 var commentProcessing = require('comment-processing');
 var processing = commentProcessing.withInstructions({delete: commentProcessing.DropInstruction});
-processing.addInstructions({drop: commentProcessing.DropInstruction, 
+processing.addInstructions({drop: commentProcessing.DropInstruction,
                              min: commentProcessing.MinInstruction});
 ```
 
@@ -483,7 +484,7 @@ Returns a factory method of an instruction, that adds a .min to all references J
 <!-- add-min:end -->
 ```
 
-will be converted to 
+will be converted to
 
 ```html
 <script src="components/bootstrap.min.js"></script>
@@ -495,9 +496,9 @@ tags and they will will stay untouched. Any line being a script src or link href
 
 ### commentProcessing.AggregateInstruction([callback])
 
-Returns a factory method of an instruction which collects all script references in between. Therefore an alternate
-filename has to be provided which will be used instead. This can be used to call a 3rd party module like uglify to
-concat all files.
+Returns a factory method of an instruction which collects all script and/or stylesheet references in between. Therefore
+an alternate filename has to be provided which will be used instead. This can be used to call a 3rd party module like
+uglify to concat all files.
 
 ```html
 <!-- concat:start script/application.js -->
@@ -512,6 +513,9 @@ will be converted to
 ```html
 <script src="script/application.js"></script>
 ```
+
+The instruction determines whether to render a script or a link tag by evaluation the file extension of the replacement
+file name.
 
 Before, when creating the aggregation instruction instance, you can define a callback to be called with the list of
 files collected.
@@ -550,29 +554,34 @@ commentProcessings.AggregateInstruction.factory(function(sourceFiles, targetFile
 #### commentProcessing.AggregateInstruction.factory(*[callback]*)
 
 Creates a factory for AggregateInstructions. As the configuration of a processing needs a method to create instances of
-the instructions and the AggregateInstruction may need a callback which should be uses when the instance is created, 
+the instructions and the AggregateInstruction may need a callback which should be uses when the instance is created,
 this method returns a function that will create well configured objects.
 
 ```javascript
 var myProcessing = commentProcessing();
-myProcessing.addInstruction('concat', 
+myProcessing.addInstruction('concat',
     commentProcessing.AggregateInstruction.factory(function(sourceFiles, targetFile) {
       // concat the files
     });
 ```
 
+#### aggregateProcessing.hasCssTarget()
+
+Returns `true` if the targetFile of this aggregation is a CSS file, `false` in any other cases, which would most
+probably mean Javascript.
+
 ### instruction.start(line, name, arg, index)
 
-Called when a comment was found that matches the name this instruction was registered with. 
+Called when a comment was found that matches the name this instruction was registered with.
 
 * `line` is the string containing the complete line this comment was found (until the next newline character).
-* `name` is the actual name of the instruction, as it could be registered under several names. 
+* `name` is the actual name of the instruction, as it could be registered under several names.
 * `arg` is the argument that was given to the comment, like *theArgument* in
 
     ```html
     <!-- instructionName:start theArgument -->
     ```
-    
+
 * `index` is the position in `line` where the comment started. This can be used to ensure the indentation when creating output.
 
 This method has to return the transformed output for this line. In most cases this will be `null` for no output.
@@ -587,7 +596,7 @@ Called for every line within the start and the end comment.
 
 Callen when the end comment was found.
 
-`line` will contain the complete line with the end comment as a string. 
+`line` will contain the complete line with the end comment as a string.
 
 This method has to return the transformed output for this line. In most cases this will be `null` for no output.
 
@@ -611,4 +620,3 @@ MIT
 [stability-url]: https://iojs.org/api/documentation.html#documentation_stability_index
 [nodei-img]: https://nodei.co/npm/comment-processing.png?compact=true
 [nodei-url]: https://nodei.co/npm/comment-processing/
-
