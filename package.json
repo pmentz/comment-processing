@@ -1,6 +1,6 @@
 {
   "name": "comment-processing",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Node module that transforms HTML/XML comments into processing instructions",
   "main": "index.js",
   "scripts": {
